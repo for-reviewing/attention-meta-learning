@@ -1,0 +1,1 @@
+python src/utils/visualization.py --dataset_dir data/processed/dataset_MT10/unseen --model resnet18_cbam --model_checkpoint models/checkpoints/maml_model.pth --n_samples 1000 --output resnet18_cbam_tsne.png
