@@ -16,7 +16,7 @@ reports/
 notebooks/
 experiments/
 scripts/
-create_project_structure.py
+references/create_project_structure.py
 meta_training1.py
 meta_training2.py
 meta_training3.py
