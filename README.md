@@ -1,45 +1,101 @@
 # Attention-Driven Meta-Learning Project
 
-This repository contains an implementation of meta-learning for few-shot classification using attention mechanisms, specifically focusing on the Convolutional Block Attention Module (CBAM) integrated with ResNet18. The project utilizes the PlantVillage dataset and aims to demonstrate the benefits of attention-driven meta-learning for feature extraction and classification tasks.
+This repository contains an implementation of meta-learning for few-shot classification using attention mechanisms, specifically **ResNet18** integrated with the **Convolutional Block Attention Module (CBAM)**. The methodology is based on **Model-Agnostic Meta-Learning (MAML)** and is applied to the **PlantVillage** dataset to showcase how attention-driven meta-learning can enhance feature extraction and classification performance, even in scenarios with limited training data.
 
-## Project Overview
+---
 
-This project consists of three main components:
+## 1. Project Overview
 
-1. **Model Definition and Training**: Implements the ResNet18 architecture with and without CBAM. Uses Model-Agnostic Meta-Learning (MAML) for training on few-shot learning tasks generated from the PlantVillage dataset.
+This project has three main components:
 
-2. **Evaluation**: Evaluates the performance of the trained models on unseen classes using meta-learning evaluation techniques to compute metrics like accuracy, precision, recall, and F1-score.
+1. **Model Definition and Training**  
+   - Implements ResNet18 with and without CBAM  
+   - Trains the models using MAML on few-shot tasks derived from the PlantVillage dataset
 
-3. **Feature Visualization**: Visualizes the feature embeddings from the trained models using t-SNE to understand how well the models cluster different classes.
+2. **Evaluation**  
+   - Evaluates the trained models on unseen classes to compute metrics such as accuracy, precision, recall, specificity, and F1-score
 
-## Requirements
+3. **Feature Visualization**  
+   - Uses t-SNE to visualize the embeddings from the trained models, illustrating how well the models cluster different classes
 
-To run this project, you will need:
+---
 
-- Python 3.x
-- PyTorch
-- torchvision
-- NumPy
-- SciPy
-- scikit-learn
-- matplotlib
-- seaborn
-- tqdm
-- PIL (Pillow)
-- `higher` library for MAML implementation
-- TensorFlow Datasets (for dataset download)
+## 2. Installation and Requirements
 
-Install all dependencies using the following command:
+The code is tested on **Python 3.8** with **CUDA 11.1**. GPU usage is highly recommended due to the computational overhead of meta-learning.
+
+**Required Packages:**
+
+- Python 3.x  
+- [PyTorch](https://pytorch.org/) (>= 1.9)  
+- [torchvision](https://pytorch.org/vision/)  
+- NumPy  
+- SciPy  
+- scikit-learn  
+- matplotlib  
+- seaborn  
+- tqdm  
+- PIL (Pillow)  
+- [higher](https://github.com/facebookresearch/higher) (for MAML inner-loop optimization)  
+- TensorFlow Datasets (for dataset download if using TFDS)
+
+Install dependencies:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## Usage
+> **Note**: Verify that your CUDA and GPU drivers are installed if you plan to train on GPU. Training on CPU is possible but significantly slower.
 
-### 1. Training Models
+---
 
-Train ResNet18 models (with and without CBAM) using the PlantVillage dataset and MAML:
+## 3. Directory Structure and Data Preparation
+
+Ensure your project directory looks like this (you may adapt it as needed):
+
+```
+attention-meta-learning/
+├── data/
+│   ├── raw/                # Original dataset files
+│   ├── processed/
+│   │   └── dataset_MT10/   # Preprocessed data for the MT-10 experiment
+│   ├── ...                 # Additional datasets can be placed here
+├── models/
+│   └── checkpoints/        # Directory to save trained model checkpoints
+├── src/
+│   ├── training/
+│   ├── evaluation/
+│   ├── utils/
+│   ├── models/
+├── results/
+│   └── figures/            # Directory for saving t-SNE plots and other results
+├── requirements.txt
+├── README.md
+└── ...
+```
+
+### 3.1 Downloading the Dataset
+
+The PlantVillage dataset can be accessed through TensorFlow Datasets or manually downloaded from its source and placed under `data/raw/`. If you are using TFDS, the dataset will be automatically downloaded to the default TFDS directory.
+
+### 3.2 Data Preprocessing
+
+Run the provided script to preprocess the dataset for the MT-10 (tomato classes) or MT-6 experiments:
+
+```bash
+python src/data_preprocessing.py \
+    --input_dir data/raw/plant_village \
+    --output_dir data/processed/dataset_MT10 \
+    --experiment MT10
+```
+
+This will split the dataset into training and unseen sets according to the N-way K-shot experimental setup.
+
+---
+
+## 4. Training the Models
+
+Below is an example command for training ResNet18 with CBAM on the MT-10 experiment using MAML:
 
 ```bash
 python src/training/meta_training.py \
@@ -51,12 +107,26 @@ python src/training/meta_training.py \
     --q_queries 15 \
     --meta_batch_size 2 \
     --inner_steps 5 \
-    --pretrained
+    --pretrained \
+    --seed 42
 ```
 
-### 2. Evaluating Models
+**Key Arguments:**
 
-Evaluate the trained models on unseen classes using the following command:
+- `--dataset_dir`: Path to the preprocessed training data  
+- `--model`: Either `resnet18` or `resnet18_cbam`  
+- `--n_way`: Number of classes (N-way)  
+- `--k_shot`: Number of samples per class (K-shot)  
+- `--inner_steps`: Number of inner loop gradient steps for MAML  
+- `--seed`: Ensures reproducibility by setting all relevant random seeds (NumPy, PyTorch)
+
+Training logs and checkpoints will be saved automatically in `models/checkpoints/`.
+
+---
+
+## 5. Evaluating the Models
+
+Once training is complete, evaluate your model on unseen classes:
 
 ```bash
 python src/evaluation/evaluate.py \
@@ -69,69 +139,94 @@ python src/evaluation/evaluate.py \
     --num_tasks 600 \
     --inner_steps 5 \
     --inner_lr 0.01 \
-    --model_checkpoint models/checkpoints/maml_MT10_resnet18_cbam_kshot1.pth
+    --model_checkpoint models/checkpoints/maml_MT10_resnet18_cbam_kshot1.pth \
+    --seed 42
 ```
 
-### 3. Visualizing Feature Embeddings
+**Key Arguments:**
 
-Visualize the feature embeddings from trained models using t-SNE with the command:
+- `--num_tasks`: Number of few-shot tasks to evaluate  
+- `--inner_lr`: Learning rate for the inner loop during adaptation  
+- `--model_checkpoint`: Path to the trained model checkpoint  
+- `--seed`: Again ensures reproducibility during evaluation
+
+The script outputs metrics like accuracy, precision, recall, specificity, and F1-score with 95% confidence intervals.
+
+---
+
+## 6. Visualizing Feature Embeddings
+
+To visualize feature embeddings via t-SNE:
 
 ```bash
 python src/utils/visualization.py \
     --dataset_dir data/processed/dataset_MT10/unseen \
     --model resnet18_cbam \
-    --model_checkpoint models/checkpoints/maml_resnet18_cbam.pth \
+    --model_checkpoint models/checkpoints/maml_MT10_resnet18_cbam_kshot5.pth \
     --n_samples 1000 \
     --output resnet18_cbam_tsne.png
 ```
 
-## Results
+The resulting plot is saved in `results/figures/`.  
 
-### Model Evaluation Metrics
+---
 
-The evaluation metrics computed include:
-- **Accuracy**
-- **Precision**
-- **Recall**
-- **Specificity**
-- **F1-Score**
+## 7. Reproducibility
 
-The performance metrics are computed using unseen tasks and reported with 95% confidence intervals.
+- **Seeds**: We set a consistent seed (default 42) for all relevant packages (NumPy, PyTorch) to ensure reproducible results. If you wish to replicate our exact numbers, make sure to use the same seeds.  
+- **Hardware**: All experiments were conducted on an **NVIDIA GeForce RTX 2080 Ti** GPU, Intel Core i9 CPU, and 32GB of RAM.  
+- **Logs and Checkpoints**: We recommend keeping logs and checkpoints for future reference or for hyperparameter tuning without re-training from scratch.
 
-### Feature Visualization
+---
 
-The feature embeddings are visualized using t-SNE, showing how well the models cluster the different classes. The plots are saved to the specified output file.
+## 8. Results
 
-## Customizing the Project
+### 8.1 Model Evaluation Metrics
 
-- **Model Architecture**: Modify the model architecture in `src/models/model_definition.py`.
-- **Training Settings**: Adjust the hyperparameters, such as number of tasks, inner loop learning rate, and meta-learning rate in `src/training/meta_training.py`.
-- **Evaluation Metrics**: Modify or add new evaluation metrics in `src/evaluation/evaluate.py`.
-- **Data Augmentation**: Update data preprocessing or augmentation steps as needed in the dataset preparation phase.
+**Tables** in the manuscript (Tables 1 and 2) provide metrics such as accuracy, precision, recall, specificity, and F1-score for different \( k \)-shot settings. Detailed numerical results are saved in `results/evaluation_logs/`.
 
-## Notes
+### 8.2 Feature Visualization
 
-- The dataset should be processed before training by using the script provided.
-- Ensure the required CUDA version and GPU drivers are available for training on GPU.
+t-SNE plots show how well the models cluster different classes in 2D space, indicating the effectiveness of the attention mechanism for feature separation in the few-shot setting.
 
-## Troubleshooting
+---
 
-- **State Dict Loading Errors**: If you encounter errors regarding mismatched keys during model loading, make sure the state dict keys match by adjusting the prefixes or using `strict=False` while loading the model.
-- **Out of Memory**: For large models, use smaller batch sizes or reduce the number of inner steps to avoid CUDA memory errors.
+## 9. Customizing the Project
 
-## License
+1. **Model Architecture**: Edit `src/models/model_definition.py` to modify or add new layers.  
+2. **Training Settings**: Adjust hyperparameters in `src/training/meta_training.py`, e.g., `--meta_batch_size`, `--inner_lr`, `--outer_lr`, etc.  
+3. **Evaluation Metrics**: Add or revise metrics in `src/evaluation/evaluate.py`.  
+4. **Data Augmentation**: Update augmentations in the data preprocessing script or in `src/training/meta_training.py`.
 
-This project is licensed under the MIT License.
+---
 
-## Acknowledgments
+## 10. Troubleshooting
 
-- The PlantVillage dataset used in this project was accessed through TensorFlow Datasets.
-- Inspired by research in meta-learning and attention mechanisms in computer vision.
+1. **Mismatched Keys in State Dict**: If model loading fails, set `strict=False` or adapt your checkpoint keys to match your model layers.  
+2. **CUDA Out of Memory**: Reduce `--meta_batch_size` or the number of inner steps. Mixed-precision training can also help.  
+3. **Dataset Structure Issues**: Check if the dataset folders are named correctly (`train`, `unseen`, etc.) and contain images in the expected format.
 
-## Contact
+---
 
-If you have any questions or suggestions, please feel free to contact us or raise an issue on the repository.
+## 11. License
 
-## Contributing
+This project is licensed under the MIT License. For more details, see the [LICENSE](LICENSE) file.
 
-Contributions are welcome! If you'd like to contribute, please fork the repository, make your changes, and submit a pull request.
+---
+
+## 12. Acknowledgments
+
+- The PlantVillage dataset was accessed through TensorFlow Datasets or manually downloaded from the original source.
+- This research was inspired by advancements in meta-learning, attention mechanisms, and computer vision.
+
+---
+
+## 13. Contact
+
+If you have questions or suggestions, please [open an issue](../../issues) or contact the authors directly.
+
+---
+
+## 14. Contributing
+
+Contributions are welcome. Please fork this repository, make the desired changes, and submit a pull request.
